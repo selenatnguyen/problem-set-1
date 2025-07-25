@@ -22,4 +22,43 @@ from sklearn.linear_model import LogisticRegression as lr
 
 # Your code here
 
+def run_logistic():
+    df_arrests = pd.read_csv("data/df_arrests.csv")
+    print("Value counts for 'y':")
+    print(df_arrests['y'].value_counts())
+    if df_arrests['y'].nunique() < 2:
+        print("Error: 'y' column must have at least two classes (0 and 1).")
+        return None, None
+
+    df_arrests_train, df_arrests_test = train_test_split(
+        df_arrests,
+        test_size=0.3,
+        shuffle=True,
+        stratify=df_arrests['y'],
+        random_state=42
+    )
+    features = ['num_fel_arrests_last_year', 'current_charge_felony']
+    param_grid = {'C': [0.01, 1, 100]}
+    lr_model = lr(max_iter=1000)
+
+    gs_cv = GridSearchCV(lr_model, param_grid, cv=5)
+    gs_cv.fit(df_arrests_train[features], df_arrests_train['y'])
+
+    best_c = gs_cv.best_params_['C']
+    print("What was the optimal value for C?", best_c)
+    if best_c == 0.01:
+        print("Did it have the most or least regularization? Most regularization")
+    elif best_c == 100:
+        print("Did it have the most or least regularization? Least regularization")
+    else:
+        print("Did it have the most or least regularization? In the middle")
+
+    df_arrests_test['pred_lr'] = gs_cv.predict(df_arrests_test[features])
+
+    df_arrests_train.to_csv("data/df_arrests_train.csv", index=False)
+    df_arrests_test.to_csv("data/df_arrests_test.csv", index=False)
+
+    return df_arrests_train, df_arrests_test
+
+run_logistic()
 
