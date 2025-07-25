@@ -13,6 +13,7 @@ Do both metrics agree that one model is more accurate than the other? Print this
 '''
 
 # Import any further packages you may need for PART 5
+import pandas as pd
 from sklearn.calibration import calibration_curve
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -43,3 +44,28 @@ def calibration_plot(y_true, y_prob, n_bins=10):
     plt.title("Calibration Plot")
     plt.legend(loc="best")
     plt.show()
+
+df_test = pd.read_csv('data/df_arrests_test.csv')
+
+calibration_plot(df_test['y'], df_test['pred_lr'], n_bins=5)
+calibration_plot(df_test['y'], df_test['pred_dt'], n_bins=5)
+
+print("Which model is more calibrated?")
+print("Answer: logistic regression")
+
+top50_lr = df_test.sort_values('pred_lr', ascending=False).head(50)
+top50_dt = df_test.sort_values('pred_dt', ascending=False).head(50)
+
+ppv_lr = top50_lr['y'].mean()
+ppv_dt = top50_dt['y'].mean()
+
+auc_lr = roc_auc_score(df_test['y'], df_test['pred_lr'])
+auc_dt = roc_auc_score(df_test['y'], df_test['pred_dt'])
+
+print("PPV for logistic regression:", ppv_lr)
+print("PPV for decision tree:", ppv_dt)
+print("AUC for logistic regression:", auc_lr)
+print("AUC for decision tree:", auc_dt)
+print("Do both metrics agree that one model is more accurate than the other?")
+print("Answer: yes, logistic regression is more accurate")
+
