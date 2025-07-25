@@ -17,10 +17,57 @@ PART 2: Pre-processing
 '''
 
 # import the necessary packages
-
-
+import pandas as pd
 
 # Your code here
+pred = pd.read_csv('data/pred_universe_raw.csv', parse_dates=['arrest_date_univ'])
+events = pd.read_csv('data/arrest_events_raw.csv', parse_dates=['arrest_date_event'])
+
+df_arrests = pred.copy()
+df_arrests = df_arrests[df_arrests['arrest_date_univ'].notna()]
+def get_y(row):
+    start_date = row['arrest_date_univ'] + pd.Timedelta(days=1)
+    end_date = row['arrest_date_univ'] + pd.Timedelta(days=365)
+    future_felonies = events[
+        (events['person_id'] == row['person_id']) &
+        (events['arrest_date_event'] >= start_date) &
+        (events['arrest_date_event'] <= end_date) &
+        (events['charge_degree'] == 'felony')
+    ]
+    return 1 if not future_felonies.empty else 0
+df_arrests['y'] = df_arrests.apply(get_y, axis=1)
+
+
+print("The number of people that got arrested again for a felony within a year?")
+print(df_arrests['y'].mean())
+
+df_arrests = pd.merge(
+    df_arrests,
+    events[['person_id', 'arrest_date_event', 'charge_degree']],
+    left_on=['person_id', 'arrest_date_univ'],
+    right_on=['person_id', 'arrest_date_event'],
+    how='left'
+)
+
+df_arrests['current_charge_felony'] = (df_arrests['charge_degree'] == 'felony').astype(int)
+print("How many current charges are felonies?")
+print(df_arrests['current_charge_felony'].mean())
+    
+def get_last_year(row):
+    past = events[
+        (events['person_id'] == row['person_id']) &
+        (events['arrest_date_event'] < row['arrest_date_univ']) &
+        (events['arrest_date_event'] >= row['arrest_date_univ'] - pd.Timedelta(days=365)) &
+        (events['charge_degree'] == 'F')
+    ]
+    return len(past)
+
+df_arrests['num_fel_arrests_last_year'] = df_arrests.apply(get_last_year, axis=1)
+print("What's the average number of felony arrests last year?")
+print(df_arrests['num_fel_arrests_last_year'].mean())
+print(pred.head()) 
+df_arrests.to_csv('data/df_arrests.csv', index=False)  
+
 
 
 
